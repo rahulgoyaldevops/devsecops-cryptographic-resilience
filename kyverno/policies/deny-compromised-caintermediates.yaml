@@ -1,0 +1,55 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: block-untrusted-intermediate-cas
+  annotations:
+    policies.kyverno.io/title: Block Untrusted Intermediate CAs & Vulnerable Roots
+    policies.kyverno.io/category: Supply Chain Security & PKI Resilience
+    policies.kyverno.io/severity: critical
+    policies.kyverno.io/subject: Pod, Deployment, StatefulSet
+    policies.kyverno.io/description: >-
+      Enforces zero-trust cryptographic supply-chain security by inspecting container image 
+      Cosign signatures. Denies admission to any workload signed by revoked or degraded 
+      intermediate CAs (specifically blocking compromised eMudhra 2026 intermediate certificates).
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+    - name: verify-trusted-code-signing-root
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      verifyImages:
+        - imageReferences:
+            - "acrenterprisecoreprod01.azurecr.io/*"
+            - "ghcr.io/rahulgoyaldevops/*"
+          attestors:
+            - entries:
+                - certificates:
+                    # Explicit enterprise root CA; rejects any unknown or blacklisted intermediate signatures
+                    cert: |-
+                      -----BEGIN CERTIFICATE-----
+                      MIICijCCAjCgAwIBAgIUeN7s5z9h0x1y2z3a4b5c6d7e8fMwDQYJKoZIhvcNAQEL
+                      BQAwVzELMAkGA1UEBhMCSU4xJzAlBgNVBAoMHkF6dXJlIFBsYXRmb3JtIFJvb3Qg
+                      QXV0aG9yaXR5MS8wLQYDVQQDDCZBenVyZSBQbGF0Zm9ybSBFbnRlcnByaXNlIFJv
+                      b3QgQ0EgRzIwHhcNMjYwMTAxMDAwMDAwWhcNMzYwMTAxMDAwMDAwWjBXMQswCQYD
+                      VQQGEwJJTjEnMCUGA1UECgweQXp1cmUgUGxhdGZvcm0gUm9vdCBBdXRob3JpdHkx
+                      LzAtBgNVBAMMJkF6dXJlIFBsYXRmb3JtIEVudGVycHJpc2UgUm9vdCBDQSBHMjCC
+                      ASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAL0x0y...
+                      -----END CERTIFICATE-----
+
+    - name: block-blacklisted-cert-fingerprints
+      match:
+        any:
+          - resources:
+              kinds:
+                - ConfigMap
+                - Secret
+      validate:
+        message: "Attempted to mount blacklisted/revoked intermediate certificate (eMudhra 2026 revocation list)."
+        pattern:
+          data:
+            # Deny matching known compromised eMudhra SHA-256 fingerprint patterns
+            "?(ca-bundle.crt|*.crt)": "!*5F:3A:2C:89:B1:47:D3:E0:7A:91:B2:C3:D4:E5:F6:01*"

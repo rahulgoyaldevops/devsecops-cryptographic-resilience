@@ -1,0 +1,75 @@
+# ============================================================================
+# Enterprise DevSecOps Cryptographic CI/CD Pipeline
+# Multi-Stage Zero-Trust Verification (NIST SP 800-56A & FIPS 186-5)
+# Designed by: Rahul Goyal (Senior DevOps & DevSecOps Engineer | 14+ Years)
+# ============================================================================
+
+name: Cryptographic Resilience & Zero-Trust Supply Chain Gate
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  crypto_quality_gate:
+    name: Stage 1 - Cryptographic Entropy & Weak-Key Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python Runtime
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Cryptographic Audit Tooling
+        run: |
+          pip install cryptography==50.0.2
+
+      - name: Audit Valid Enterprise Certificates
+        run: |
+          echo "==> Running Pre-Issuance Quality Gate on Valid Assets..."
+          python scripts/verify_crypto_entropy.py samples/valid-certs/
+
+      - name: Negative Test Gate (Verify Detection of Weak / Revoked Intermediates)
+        run: |
+          echo "==> Verifying Gate Automatically Rejects Revoked / Degraded Intermediates..."
+          # Expect failure code (exit 1) on simulated degraded certificates
+          if python scripts/verify_crypto_entropy.py samples/weak-certs/simulated-revoked-intermediate.crt; then
+            echo "[CRITICAL DEFECT] Scanner failed to catch known weak/revoked intermediate!"
+            exit 1
+          else
+            echo "[SUCCESSFUL BLOCK] Scanner successfully quarantined degraded intermediate certificate."
+          fi
+
+  supply_chain_admission_lint:
+    name: Stage 2 - Kubernetes Kyverno & Trust Store Validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Kyverno CLI
+        uses: kyverno/action-install-cli@v0.2.0
+
+      - name: Validate Kyverno Admission Policies
+        run: |
+          echo "==> Validating Kyverno Supply Chain & Intermediate CA Policies..."
+          kyverno test kyverno/policies/
+
+      - name: Lint Kubernetes Trust-Manager Bundles
+        run: |
+          echo "==> Validating Trust-Manager Kubernetes Manifests..."
+          which kubectl || sudo snap install kubectl --classic
+          kubectl apply --dry-run=client -f kubernetes/trust-manager/cert-manager-trust-bundle.yaml

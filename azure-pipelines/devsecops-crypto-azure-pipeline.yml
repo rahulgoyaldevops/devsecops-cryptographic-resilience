@@ -1,0 +1,63 @@
+# ============================================================================
+# Azure DevOps Multi-Stage DevSecOps Cryptographic Verification Pipeline
+# Author: Rahul Goyal — Senior DevOps & DevSecOps Engineer (14+ Years Total IT)
+# ============================================================================
+
+trigger:
+  branches:
+    include:
+      - main
+  paths:
+    include:
+      - scripts/*
+      - kubernetes/*
+      - kyverno/*
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+stages:
+  - stage: CryptographicPreIssuanceGate
+    displayName: 'Stage 1: Cryptographic Entropy & Entropy Audit'
+    jobs:
+      - job: EntropyAndWeakKeyAudit
+        displayName: 'NIST Entropy & P-384 Verification'
+        steps:
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: '3.11'
+            displayName: 'Set Python Runtime'
+
+          - script: |
+              python -m pip install --upgrade pip
+              pip install cryptography==50.0.2
+            displayName: 'Install Dependencies'
+
+          - script: |
+              echo "==> Auditing Enterprise Internal Certificates..."
+              python scripts/verify_crypto_entropy.py samples/valid-certs/
+            displayName: 'Execute NIST SP 800-22 Entropy Verification'
+
+          - script: |
+              echo "==> Executing Degraded Key Negative Test..."
+              set +e
+              python scripts/verify_crypto_entropy.py samples/weak-certs/simulated-revoked-intermediate.crt
+              EXIT_CODE=$?
+              if [ $EXIT_CODE -ne 1 ]; then
+                echo "##vso[task.logissue type=error]Quality gate failed to block degraded key!"
+                exit 1
+              fi
+              echo "##vso[task.complete result=Succeeded;]Successfully blocked compromised intermediate."
+            displayName: 'Quarantine Test: Deny Weak Key Generation'
+
+  - stage: SupplyChainClusterDefense
+    displayName: 'Stage 2: Kubernetes Cluster Defense & Admission Control'
+    dependsOn: CryptographicPreIssuanceGate
+    jobs:
+      - job: PolicyVerification
+        displayName: 'Verify Kyverno & Trust-Manager Declarations'
+        steps:
+          - script: |
+              echo "==> Validating K8s Trust Manager Bundle manifests..."
+              kubectl apply --dry-run=client -f kubernetes/trust-manager/cert-manager-trust-bundle.yaml
+            displayName: 'Validate Manifest Syntax'
