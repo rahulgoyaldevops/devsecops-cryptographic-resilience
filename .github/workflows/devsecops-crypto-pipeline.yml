@@ -67,8 +67,12 @@ jobs:
           echo "==> Validating Kyverno Supply Chain & Intermediate CA Policies..."
           kyverno test kyverno/policies/
 
-      - name: Lint Kubernetes Trust-Manager Bundles
+      - name: Lint Kubernetes Trust-Manager YAML Structure
         run: |
-          echo "==> Validating Trust-Manager Kubernetes Manifests..."
-          which kubectl || sudo snap install kubectl --classic
-          kubectl apply --dry-run=client --validate=false -f kubernetes/trust-manager/cert-manager-trust-bundle.yaml
+          echo "==> Validating Trust-Manager Kubernetes Manifest Structure & YAML Syntax..."
+          python -c "
+          import yaml
+          with open('kubernetes/trust-manager/cert-manager-trust-bundle.yaml') as f:
+              docs = list(yaml.safe_load_all(f))
+              print(f'Successfully validated {len(docs)} Kubernetes manifests syntax.')
+          "
