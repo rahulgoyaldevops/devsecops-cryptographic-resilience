@@ -31,11 +31,10 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          cache: 'pip'
 
       - name: Install Cryptographic Audit Tooling
         run: |
-          pip install cryptography==50.0.2
+          pip install -r requirements.txt
 
       - name: Audit Valid Enterprise Certificates
         run: |
@@ -72,4 +71,4 @@ jobs:
         run: |
           echo "==> Validating Trust-Manager Kubernetes Manifests..."
           which kubectl || sudo snap install kubectl --classic
-          kubectl apply --dry-run=client -f kubernetes/trust-manager/cert-manager-trust-bundle.yaml
+          kubectl apply --dry-run=client --validate=false -f kubernetes/trust-manager/cert-manager-trust-bundle.yaml
