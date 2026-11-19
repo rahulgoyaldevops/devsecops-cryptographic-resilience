@@ -1,7 +1,7 @@
 <div align="center">
 
 # 🛡️ DevSecOps Cryptographic Resilience & Zero-Trust Defense
-
+[![Cryptographic Resilience & Zero-Trust Supply Chain Gate](https://github.com/rahulgoyaldevops/devsecops-cryptographic-resilience/actions/workflows/devsecops-crypto-pipeline.yml/badge.svg)](https://github.com/rahulgoyaldevops/devsecops-cryptographic-resilience/actions/workflows/devsecops-crypto-pipeline.yml)
 [![Security Gate](https://img.shields.io/badge/DevSecOps-Cryptographic_Resilience-0078D4?style=for-the-badge&logo=azuredevops&logoColor=white)](https://github.com/rahulgoyaldevops/devsecops-cryptographic-resilience)
 [![PKI Incident](https://img.shields.io/badge/Incident_PostMortem-eMudhra_2026-critical?style=for-the-badge&logo=securityscorecard&logoColor=white)](docs/INCIDENT_POSTMORTEM_EMUDHRA_2026.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)](LICENSE)
