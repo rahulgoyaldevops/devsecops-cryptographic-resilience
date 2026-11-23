@@ -18,7 +18,7 @@
 
 In October 2026, a critical cryptographic entropy defect in **eMudhra's intermediate Certificate Authorities** compromised eight globally trusted intermediate keys (6 TLS HTTPS and 2 Code Signing). 
 
-A software defect in an HSM key-generation ceremony generated **P-384 Elliptic Curve private keys with scalar values smaller than 256 ($d < 256$)**, completely compromising the discrete logarithm problem and allowing attackers to calculate the private keys directly from public certificates in microseconds.
+A software defect in an HSM key-generation ceremony generated **P-384 Elliptic Curve private keys with scalar values smaller than 256 (`d < 256`)**, completely compromising the discrete logarithm problem and allowing attackers to calculate the private keys directly from public certificates in microseconds.
 
 This repository implements the **complete enterprise DevSecOps defense lifecycle** to ensure zero-trust cryptographic supply chains, pre-issuance quality gates, and automated Kubernetes runtime isolation.
 
